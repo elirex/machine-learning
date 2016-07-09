@@ -4,6 +4,7 @@ from data.data_utils import load_CIFAR10
 from classifiers import KNearestNeighbor
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 # Load the raw CIFAR-10 data.
 CIFA_PATH = 'data/cifar-10'
@@ -58,5 +59,36 @@ classifier.train(train_dataset, train_labels)
 
 
 # Test compute_distances_two_loops:
-dists = classifier.compute_distances_two_loops(test_dataset)
-print('Distance shape:', dists.shape)
+# start_time = time.time()
+# dists_two_loops = classifier.compute_distances_two_loops(test_dataset)
+# print("--- KNN one loop execution time: {0} seconds ---".format((time.time() - start_time)))
+# print('Distance shape:', dists_two_loops.shape)
+
+# Test compute_distances_one_loop:
+# start_time = time.time()
+# dists_one_loop = classifier.compute_distances_one_loop(test_dataset)
+# print("--- KNN two loops execution time: {0} seconds ---".format((time.time() - start_time)))
+# print('Distance shape:', dists_one_loop.shape)
+
+
+# Test compute_distances_no_loop:
+start_time = time.time()
+dists_no_loop = classifier.compute_distances_no_loop(test_dataset)
+print("--- KNN no loop execution time: {0} seconds ---".format((time.time() - start_time)))
+print('Distance shape:', dists_no_loop.shape)
+
+# Visualize the distance matrix: each row is a single test example and its
+# distances to training examples
+plt.imshow(dists_no_loop, interpolation='none')
+plt.ion()
+plt.show()
+
+# Now implement the function predict_labels and run the code below:
+# Use k = 1
+test_labels_predict = classifier.predict_labels(dists_no_loop, k = 1)
+
+# Compute and print the fraction of correctly predicted examples
+num_correct = np.sum(test_labels_predict == test_labels)
+accuracy = float(num_correct) / NUM_TEST
+print('Got {0:d} / {1:d} correct => accuracy: {2:f}'.format(num_correct, NUM_TEST, accuracy))
+plt.show()

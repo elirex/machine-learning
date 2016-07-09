@@ -1,4 +1,5 @@
 import numpy as np
+from collections import Counter
 ##############################################################################
 # K Nearest Neighbor Class
 ##############################################################################
@@ -34,10 +35,10 @@ class KNearestNeighbor(object):
 
     def compute_distances_one_loop(self, dataset):
         num_test = dataset.shape[0]
-        num_train = dataset.shape[0]
+        num_train = self.train_dataset.shape[0]
         dists = np.zeros((num_test, num_train))
         for i in range(num_test):
-            dists[i, :] = np.sprt(np.sum(np.square(self.train_dataset - dtatset[i, :]), axis = 1))
+            dists[i, :] = np.sqrt(np.sum(np.square(self.train_dataset - dataset[i, :]), axis = 1))
         return dists
 
     def compute_distances_no_loop(self, dataset):
@@ -57,11 +58,14 @@ class KNearestNeighbor(object):
         for i in range(num_test):
             # A list of length k storing the labels of the k nearest neighbor to
             # the ith test point.
-            closet_labels = []
-            indexs = np.argsort(dists[i, :])
-            for i in range(0, k):
-               closest_labels.append(self.train_dataset[index[i]])
+            closest_labels = []
+            # indexs = np.argsort(dists[i, :])
+            # for i in range(0, k):
+            #     closest_labels.append(self.train_labels[indexs[i]])
 
+            labels = self.train_labels[np.argsort(dists[i, :])].flatten()
+            closest_labels = labels[0:k]
+            
             # To find the most common labels in list closest_labels.
             # Store this labels in predict[i]
             labels = {}
@@ -70,5 +74,7 @@ class KNearestNeighbor(object):
                     labels[label] += 1
                 else:
                     labels[label] = 0
-            predict[i] = list(a.keys())[np.argmax(list(a.values()))]
+            predict[i] = list(labels.keys())[np.argmax(list(labels.values()))]
+            # c = Counter(closest_labels)
+            # predict[i] = c.most_common(1)[0][0]
         return predict
