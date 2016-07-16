@@ -91,8 +91,8 @@ test_labels_predict = classifier.predict_labels(dists_no_loop, k = 1)
 
 # Compute and print the fraction of correctly predicted examples
 
-for i in [0, 1, 2 ,3 ,4]:
-    print(test_labels_predict[i], classes[int(test_labels_predict[i])], test_labels[i], classes[test_labels[i]])
+# for i in [0, 1, 2 ,3 ,4]:
+#     print(test_labels_predict[i], classes[int(test_labels_predict[i])], test_labels[i], classes[test_labels[i]])
 
 num_correct = np.sum(test_labels_predict == test_labels)
 accuracy = float(num_correct) / NUM_TEST
@@ -111,3 +111,53 @@ for j in range(14):
 plt.ion()
 plt.show()
 
+
+# Cross-Validation
+NUM_FOLDES = 5
+K_CHOICES = [1, 3, 5, 8 ,10 , 12, 15, 20, 50, 100]
+
+train_dataset_foldes = []
+train_labels_foldes = []
+
+train_dataset_foldes = np.array_split(train_dataset, NUM_FOLDES)
+train_labels_foldes = np.array_split(train_labels, NUM_FOLDES)
+
+# This dictionary is holding the accuracies for different values for k that
+# we find when running cross-validation.
+k_to_accuracies = {}
+
+
+for k in K_CHOICES:
+    accuracy = []
+    for i in range(NUM_FOLDES):
+        train_dataset_tmp = []
+        train_labels_tmp = []
+        test_dataset_tmp = []
+        test_labels_tmp = []
+        for j in range(NUM_FOLDES):
+            if i == j:
+                test_dataset_tmp = train_dataset_foldes[j]
+                test_labels_tmp = train_labels_foldes[j]
+                continue
+            train_dataset_tmp.append(train_dataset_foldes[j])
+            train_labels_tmp.append(train_labels_foldes[j])
+        train_dataset_tmp = np.vstack(train_dataset_tmp)
+        train_labels_tmp = np.concatenate(train_labels_tmp)
+
+        classifier_cv = KNearestNeighbor()
+        classifier_cv.train(train_dataset_tmp, train_labels_tmp)
+        dists = classifier_cv.compute_distances_no_loop(test_dataset_tmp)
+
+        test_labels_predict = classifier_cv.predict_labels(dists, k)
+        
+        # Compute and print the fraction of correctly predicted examples
+        num_correct = np.sum(test_labels_predict == test_labels_tmp)
+        acc = float(num_correct) / len(test_labels_tmp)
+        accuracy.append(acc)
+    k_to_accuracies[k] = accuracy
+
+
+# Print out the computed accuracies
+for k in sorted(k_to_accuracies):
+    for accuracy in k_to_accuracies[k]:
+        print('k {0:d}, accuracy = {1:f}'.format(k, accuracy))
