@@ -10,6 +10,9 @@ import time
 CIFA_PATH = 'data/cifar-10'
 train_dataset, train_labels, test_dataset, test_labels = load_CIFAR10(CIFA_PATH)
 
+org_test_dataset = test_dataset
+org_train_dataset = train_dataset
+
 print('Training dataset shape:', train_dataset.shape)
 print('Training labels shape', train_labels.shape)
 print('Test dataset shape:', test_dataset.shape)
@@ -17,7 +20,6 @@ print('Test labels shape:', test_labels.shape)
 
 
 # Visualize some examples from the dataset
-
 classes = ['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship'
         , 'truck']
 num_classes = len(classes)
@@ -88,7 +90,24 @@ plt.show()
 test_labels_predict = classifier.predict_labels(dists_no_loop, k = 1)
 
 # Compute and print the fraction of correctly predicted examples
+
+for i in [0, 1, 2 ,3 ,4]:
+    print(test_labels_predict[i], classes[int(test_labels_predict[i])], test_labels[i], classes[test_labels[i]])
+
 num_correct = np.sum(test_labels_predict == test_labels)
 accuracy = float(num_correct) / NUM_TEST
 print('Got {0:d} / {1:d} correct => accuracy: {2:f}'.format(num_correct, NUM_TEST, accuracy))
+
+index = -1
+for j in range(14):
+    plt.subplot(samples_per_class, 2, j + 1)
+    if j % 2 == 0:
+        index += 1
+        plt.title(classes[int(test_labels_predict[index])])
+    else:
+        plt.title(classes[(test_labels[index])])
+    plt.imshow(org_test_dataset[index].astype('uint8'))
+    plt.axis('off')
+plt.ion()
 plt.show()
+

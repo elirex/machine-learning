@@ -12,43 +12,45 @@ class KNearestNeighbor(object):
         self.train_dataset = train_dataset
         self.train_labels = train_labels
 
-    def predict(self, dataset, k = 1, num_loops = 0):
+    def predict(self, test_dataset, k = 1, num_loops = 0):
         if num_loops == 0:
-            dists = self.compute_distances_no_loop(dataset)
+            dists = self.compute_distances_no_loop(test_dataset)
         elif num_loops == 1:
-            dists = self.compute_distances_one_loop(dataset)
+            dists = self.compute_distances_one_loop(test_dataset)
         elif num_loops == 2:
-            dists = slef.compute_distances_two_loops(dataset)
+            dists = slef.compute_distances_two_loops(test_dataset)
         else:
             raise ValueError('Invalid value {0:d} for num_loops'.format(num_loops))
         
         return self.predict_labels(dists, k=k)
 
-    def compute_distances_two_loops(self, dataset):
-        num_test = dataset.shape[0]
+    def compute_distances_two_loops(self, test_dataset):
+        num_test = test_dataset.shape[0]
         num_train = self.train_dataset.shape[0]
         dists = np.zeros((num_test, num_train))
         for i in range(num_test):
             for j in range(num_train):
-                dists[i, j] = np.sqrt(np.sum(np.square(self.train_dataset[j, :] - dataset[i, :])))
+                dists[i, j] = np.sqrt(np.sum(
+                    np.square(self.train_dataset[j, :] - test_dataset[i, :])))
         return dists
 
-    def compute_distances_one_loop(self, dataset):
-        num_test = dataset.shape[0]
+    def compute_distances_one_loop(self, test_dataset):
+        num_test = test_dataset.shape[0]
         num_train = self.train_dataset.shape[0]
         dists = np.zeros((num_test, num_train))
         for i in range(num_test):
-            dists[i, :] = np.sqrt(np.sum(np.square(self.train_dataset - dataset[i, :]), axis = 1))
+            dists[i, :] = np.sqrt(np.sum(
+                np.square(self.train_dataset - test_dataset[i, :]), axis = 1))
         return dists
 
-    def compute_distances_no_loop(self, dataset):
-        num_test = dataset.shape[0]
+    def compute_distances_no_loop(self, test_dataset):
+        num_test = test_dataset.shape[0]
         num_train = self.train_dataset.shape[0]
         dists = np.zeros((num_test, num_train))
         # (a-b)^2 = a^2 - 2ab - b^2
-        test = np.square(dataset).sum(axis = 1)
+        test = np.square(test_dataset).sum(axis = 1)
         train = np.square(self.train_dataset).sum(axis = 1)
-        M = np.dot(dataset, self.train_dataset.T)
+        M = np.dot(test_dataset, self.train_dataset.T)
         dists = np.sqrt(train + np.matrix(test).T -2 * M)
         return dists
 
@@ -62,8 +64,9 @@ class KNearestNeighbor(object):
             # indexs = np.argsort(dists[i, :])
             # for i in range(0, k):
             #     closest_labels.append(self.train_labels[indexs[i]])
-
+            # print('dists[', i, ' :] =', dists)
             labels = self.train_labels[np.argsort(dists[i, :])].flatten()
+            # print('Labels:', labels[0:k])
             closest_labels = labels[0:k]
             
             # To find the most common labels in list closest_labels.
@@ -77,4 +80,5 @@ class KNearestNeighbor(object):
             predict[i] = list(labels.keys())[np.argmax(list(labels.values()))]
             # c = Counter(closest_labels)
             # predict[i] = c.most_common(1)[0][0]
+        # print('Predict:', predict)
         return predict
