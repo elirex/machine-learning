@@ -34,7 +34,7 @@ for label, cls in enumerate(classes):
         plt.axis('off')
         if i == 0:
             plt.title(cls)
-plt.ion()
+# plt.ion()
 plt.show()
 
 # Subsample the data for more efficient code execution in this exercise
@@ -82,7 +82,7 @@ print('Distance shape:', dists_no_loop.shape)
 # Visualize the distance matrix: each row is a single test example and its
 # distances to training examples
 plt.imshow(dists_no_loop, interpolation='none')
-plt.ion()
+# plt.ion()
 plt.show()
 
 # Now implement the function predict_labels and run the code below:
@@ -108,7 +108,7 @@ for j in range(14):
         plt.title(classes[(test_labels[index])])
     plt.imshow(org_test_dataset[index].astype('uint8'))
     plt.axis('off')
-plt.ion()
+# plt.ion()
 plt.show()
 
 
@@ -161,3 +161,33 @@ for k in K_CHOICES:
 for k in sorted(k_to_accuracies):
     for accuracy in k_to_accuracies[k]:
         print('k {0:d}, accuracy = {1:f}'.format(k, accuracy))
+
+
+# Plot the raw observations
+for k in K_CHOICES:
+    accuracies = k_to_accuracies[k]
+    plt.scatter([k] * len(accuracies), accuracies)
+
+# Plot the trend line with error bars that correspond to standard devistion
+accuracies_mean = np.array([np.mean(v) for k, v in sorted(k_to_accuracies.items())])
+accuracies_std = np.array([np.std(v) for k, v in sorted(k_to_accuracies.items())])
+plt.errorbar(K_CHOICES, accuracies_mean, yerr=accuracies_std)
+plt.title('Cross-validation on k')
+plt.xlabel('k')
+plt.ylabel('Cross-validation accuracy')
+plt.show()
+
+
+# Based on the cross-validation results above, choose the best value for k,
+# retrain the classifier using all the training data, and test it on the test
+# data.
+BEST_K = 7
+
+classifier = KNearestNeighbor()
+classifier.train(train_dataset, train_lables)
+test_labels_pred = classifier.predict(test_data, k=BEST_K)
+
+# Compute and display the accuracy
+num_correct = np.sum(test_labels_pred == test_labels)
+accuracy = float(num_correct) / NUM_TEST
+print('Got {0:d} / {1:d} correct => accuracy: {2:f}'.format(num_correct, NUM_TEST, accuracy))
