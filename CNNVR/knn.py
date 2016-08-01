@@ -31,8 +31,7 @@ for label, cls in enumerate(classes):
         plt_id_train = i * num_classes + label + 1
         plt.subplot(samples_per_class, num_classes, plt_id_train)
         plt.imshow(train_dataset[id_train].astype('uint8'))
-        plt.axis('off')
-        if i == 0:
+        plt.axis('off') if i == 0:
             plt.title(cls)
 # plt.ion()
 plt.show()
