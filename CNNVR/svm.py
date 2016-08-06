@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from data.data_utils import load_CIFAR10
-from classifiers import KNearestNeighbor
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -21,21 +20,21 @@ print('Test labels shape:', test_labels.shape)
 
 
 # Visualize some example from the dataset.
-CLASSES = ['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
-NUM_CLASSES = len(CLASSES)
-samples_per_class = 7
-
-for y, cls in enumerate(CLASSES):
-    idxs = np.flatnonzero(train_labels == y)
-    idxs = np.random.choice(idxs, samples_per_class, replace=False)
-    for i, idx in enumerate(idxs):
-        plt_idx = i * NUM_CLASSES + y + 1
-        plt.subplot(samples_per_class, NUM_CLASSES, plt_idx)
-        plt.imshow(train_dataset[idx].astype('uint8'))
-        plt.axis('off')
-        if i == 0:
-            plt.title(cls)
-plt.show()
+# CLASSES = ['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+# NUM_CLASSES = len(CLASSES)
+# samples_per_class = 7
+# 
+# for y, cls in enumerate(CLASSES):
+#     idxs = np.flatnonzero(train_labels == y)
+#     idxs = np.random.choice(idxs, samples_per_class, replace=False)
+#     for i, idx in enumerate(idxs):
+#         plt_idx = i * NUM_CLASSES + y + 1
+#         plt.subplot(samples_per_class, NUM_CLASSES, plt_idx)
+#         plt.imshow(train_dataset[idx].astype('uint8'))
+#         plt.axis('off')
+#         if i == 0:
+#             plt.title(cls)
+# plt.show()
 
 
 # Subsample the data for more efficient code execution in this exercise.
@@ -98,4 +97,28 @@ test_dataset = np.hstack([test_dataset, np.ones((test_dataset.shape[0], 1))]).T
 print('Training data sahpe:', train_dataset.shape)
 print('Validation data shape:', valid_dataset.shape)
 print('Test data shape:', test_dataset.shape)
+
+
+# Evaluate the naive implementation of the loss we provided for you:
+from classifiers.linear_svm import svm_loss_naive
+
+# Generate a random SVM weight matrix of small numbers
+W = np.random.randn(10, 3073) * 0.0001
+loss, grad = svm_loss_naive(W, train_dataset, train_labels, 0.00001)
+print('loss: {0:f}'.format(loss))
+
+
+# Once you've implemented the gradient, recompute it with the code below
+# and gradient check it with the function we provieded for you
+
+# Compute the loss and its gradient as W.
+loss, grad = svm_loss_naive(W, train_dataset, train_labels, 0.0)
+print('Reg: 0.0, loss: {0:f}'.format(loss))
+
+# Numerically compute the gradient along serveral randomly chosen dimenions,
+# and compare them with your analyticially computed gradient. The numbers
+# should match almost exactly along all dimensions.
+from gradient_check import grad_check_sparse
+f = lambda w: svm_loss_naive(W, train_dataset, train_labels, 0.0)[0]
+grad_numerical = grad_check_sparse(f, W, grad, 10)
 
