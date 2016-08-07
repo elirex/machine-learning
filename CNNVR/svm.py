@@ -2,6 +2,7 @@
 from data.data_utils import load_CIFAR10
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 
 plt.rcParams['figure.figsize'] = (10.0, 8.0) # Set default size of plots
@@ -100,7 +101,7 @@ print('Test data shape:', test_dataset.shape)
 
 
 # Evaluate the naive implementation of the loss we provided for you:
-from classifiers.linear_svm import svm_loss_naive
+from classifiers.linear_svm import *
 
 # Generate a random SVM weight matrix of small numbers
 W = np.random.randn(10, 3073) * 0.0001
@@ -122,3 +123,18 @@ from gradient_check import grad_check_sparse
 f = lambda w: svm_loss_naive(W, train_dataset, train_labels, 0.0)[0]
 grad_numerical = grad_check_sparse(f, W, grad, 10)
 
+# Next implement the fuction svm_loss_vectorized; for now only compute the loss;
+# we will implement the gradient in a moment.
+start_time = time.time()
+loss_naive, grad_naive = svm_loss_naive(W, train_dataset, train_labels, 0.00001)
+end_time = time.time()
+print('Naive loss: {0:e} computed in {1:f}s'.format(loss_naive, end_time - start_time))
+
+
+start_time = time.time()
+loss_vectorized, grad_vectorized = svm_loss_vectorized(W, train_dataset, train_labels, 0.00001)
+end_time = time.time()
+print('Vectorized loss: {0:e} computed in {1:f}s'.format(loss_vectorized, end_time - start_time))
+
+# The losses should match but your vectorized implementation should be much faster.
+print('Difference: {0:f}'.format(loss_naive - loss_vectorized))
