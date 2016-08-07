@@ -21,8 +21,8 @@ print('Test labels shape:', test_labels.shape)
 
 
 # Visualize some example from the dataset.
-# CLASSES = ['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
-# NUM_CLASSES = len(CLASSES)
+CLASSES = ['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+NUM_CLASSES = len(CLASSES)
 # samples_per_class = 7
 # 
 # for y, cls in enumerate(CLASSES):
@@ -161,3 +161,82 @@ y_train_pred = svm.predict(train_dataset)
 print('Training accuracy: {0:f}'.format(np.mean(train_labels == y_train_pred)))
 y_val_pred = svm.predict(valid_dataset)
 print('Validation accurcy: {0:f}'.format(np.mean(valid_labels == y_val_pred)))
+
+
+# Use the validation set to tune hyperparameters (regularization strength and learning rate)
+learning_reates = [1e-7, 2e-7, 3e-7, 5e-7, 8e-7]
+regularization_strengths = [1e4, 2e4, 3e4, 4e4, 5e4, 5e4, 7e4, 8e4, 1e5]
+
+# Result is dictionary mapping tuples of the from (learning_rate, 
+# regularization_strength) to tuples of the form (training_accuracy, validation_accuracy).
+results = {}
+best_val = -1 # The highest validation accuracy.
+best_svm = None # The LinearSVM object that achieved the heighest validation rate.
+
+iters = 2000
+for lr in learning_reates:
+    for rs in regularization_strengths:
+        svm = LinearSVM()
+        svm.train(train_dataset, train_labels, learning_rate=lr, 
+                reg=rs, num_iters=iters)
+
+        y_train_pred = svm.predict(train_dataset)
+        acc_train = np.mean(train_labels == y_train_pred)
+        y_val_pred = svm.predict(valid_dataset)
+        acc_val = np.mean(valid_labels == y_val_pred)
+
+        results[(lr, rs)] = (acc_train, acc_val)
+
+        if best_val < acc_val:
+            best_val = acc_val
+            best_svm = svm
+
+# Show results
+for lr, rs in sorted(results):
+    train_acc, val_acc = results[(lr, rs)]
+    print('learning_rate: {0:e}, regularization_strengths: {1:e}, \ntrain_accuracy: {2:f}, validation_accuracy: {3:f}'.format(lr, rs, train_acc, val_acc))
+
+print('The best validation accuracy achieved during cross-validation: {0:f}'.format(best_val))
+
+
+
+# Show the cross-validation results
+import math
+x_scatter = [math.log10(x[0]) for x in results]
+y_scatter = [math.log10(x[1]) for x in results]
+
+# Training accuracy
+sz = [results[x][0] * 1500 for x in results] # Default size of markers is 20
+plt.subplot(1, 2, 1)
+plt.scatter(x_scatter, y_scatter, sz)
+plt.xlabel('Log learning rate')
+plt.ylabel('Log regularization strength')
+plt.title('CIFAR-10 training accuracy')
+
+# Validation accuracy
+sz = [results[x][1] * 1500 for x in results] # Default size of markers is 20
+plt.subplot(1, 2, 2)
+plt.scatter(x_scatter, y_scatter, sz)
+plt.xlabel('Log learning rate')
+plt.ylabel('Log regularization strength')
+plt.title('CIFAR-10 validation accuracy')
+
+plt.show()
+
+
+# Evaluate the best svm on test set
+y_test_pred = best_svm.predict(test_dataset)
+test_accuracy = np.mean(test_labels == y_test_pred)
+print('Linear SVM on raw pixels final test set accuracy: {0:f}'.format(test_accuracy))
+
+# Show the learned weights for each class.
+w = best_svm.W[:, :-1] # Strip out the bias
+w = w.reshape(10, 32, 32, 3)
+w_min, w_max = np.min(w), np.max(w)
+for i in range(NUM_CLASSES):
+    plt.subplot(2, 5, i + 1)
+    wimg = 255.0 * (w[i].squeeze() - w_min) / (w_max - w_min)
+    plt.imshow(wimg.astype['uint8'])
+    plt.axis('off')
+    plt.title(CLASSES[i])
+
