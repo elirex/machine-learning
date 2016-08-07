@@ -1,4 +1,5 @@
 import numpy as np
+from classifiers.linear_svm import *
 
 class LinearClassifier:
 
@@ -27,7 +28,7 @@ class LinearClassifier:
         num_classes = np.max(y) + 1 # Assume y takes values 0,,,K-1 where K is number of classes
         if self.W is None:
             # lazily initialize W
-            self.W = np.random.randn(num_classes, dim) * 0.01
+            self.W = np.random.randn(num_classes, dim) * 0.001
 
         # Run stochatic gradient descent to optimize W
         loss_history = []
@@ -37,7 +38,8 @@ class LinearClassifier:
 
             # Sample batch_size element from the training data and their
             # corresponding labels to use in this round of gradient descent.
-            indices = np.array([np.random.choise(num_train) for i in range(batch_size)])
+            # indices = np.array([np.random.choice(num_train) for i in range(batch_size)])
+            indices = np.random.choice(num_train, batch_size, replace=True)
             X_batch = X[:, indices]
             y_batch = y[indices]
 
@@ -46,9 +48,9 @@ class LinearClassifier:
             loss_history.append(loss)
 
             # TODO: Update the weights using the gradient and the learning rate.
-            self.W += -learning_rate * grad
+            self.W -= learning_rate * grad
 
-            if varbose and it % 100 == 0:
+            if verbose and it % 100 == 0:
                 print('Iteration {0:d} / {1:d} loss {2:f}'.format(it, num_iters, loss))
         return loss_history
 
@@ -95,4 +97,7 @@ class LinearClassifier:
 
 class LinearSVM(LinearClassifier):
     """ A subclass that uses the Multiclass SVM loss function """
+
+    def loss(self, X_batch, y_batch, reg):
+        return svm_loss_vectorized(self.W, X_batch, y_batch, reg)
 

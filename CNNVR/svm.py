@@ -74,10 +74,9 @@ test_dataset = np.reshape(test_dataset, (test_dataset.shape[0], -1))
 
 # As a sanity check, print out the shapes of the data
 print('Training data shape:', train_dataset.shape)
-print('Validation data shape:', valid_dataset.shape)
-print('Test data shape:', test_dataset.shape)
+print('Validation data shape:', valid_dataset.shape) 
+print('Test data shape:', test_dataset.shape) # Preprocessing: subtract the mean image
 
-# Preprocessing: subtract the mean image
 # First: compute the image mean based on the training data
 mean_image = np.mean(train_dataset, axis=0)
 print(mean_image[:10]) # Prin a few of the elements
@@ -105,36 +104,60 @@ from classifiers.linear_svm import *
 
 # Generate a random SVM weight matrix of small numbers
 W = np.random.randn(10, 3073) * 0.0001
-loss, grad = svm_loss_naive(W, train_dataset, train_labels, 0.00001)
-print('loss: {0:f}'.format(loss))
+# loss, grad = svm_loss_naive(W, train_dataset, train_labels, 0.00001)
+# print('loss: {0:f}'.format(loss))
 
 
 # Once you've implemented the gradient, recompute it with the code below
 # and gradient check it with the function we provieded for you
 
 # Compute the loss and its gradient as W.
-loss, grad = svm_loss_naive(W, train_dataset, train_labels, 0.0)
-print('Reg: 0.0, loss: {0:f}'.format(loss))
+# loss, grad = svm_loss_naive(W, train_dataset, train_labels, 0.0)
+# print('Reg: 0.0, loss: {0:f}'.format(loss))
 
 # Numerically compute the gradient along serveral randomly chosen dimenions,
 # and compare them with your analyticially computed gradient. The numbers
 # should match almost exactly along all dimensions.
 from gradient_check import grad_check_sparse
-f = lambda w: svm_loss_naive(W, train_dataset, train_labels, 0.0)[0]
-grad_numerical = grad_check_sparse(f, W, grad, 10)
+# f = lambda w: svm_loss_naive(W, train_dataset, train_labels, 0.0)[0]
+# grad_numerical = grad_check_sparse(f, W, grad, 10)
 
 # Next implement the fuction svm_loss_vectorized; for now only compute the loss;
 # we will implement the gradient in a moment.
-start_time = time.time()
-loss_naive, grad_naive = svm_loss_naive(W, train_dataset, train_labels, 0.00001)
-end_time = time.time()
-print('Naive loss: {0:e} computed in {1:f}s'.format(loss_naive, end_time - start_time))
+# start_time = time.time()
+# loss_naive, grad_naive = svm_loss_naive(W, train_dataset, train_labels, 0.00001)
+# end_time = time.time()
+# print('Naive loss: {0:e} computed in {1:f}s'.format(loss_naive, end_time - start_time))
 
 
-start_time = time.time()
-loss_vectorized, grad_vectorized = svm_loss_vectorized(W, train_dataset, train_labels, 0.00001)
-end_time = time.time()
-print('Vectorized loss: {0:e} computed in {1:f}s'.format(loss_vectorized, end_time - start_time))
+# start_time = time.time()
+# loss_vectorized, grad_vectorized = svm_loss_vectorized(W, train_dataset, train_labels, 0.00001)
+# end_time = time.time()
+# print('Vectorized loss: {0:e} computed in {1:f}s'.format(loss_vectorized, end_time - start_time))
 
 # The losses should match but your vectorized implementation should be much faster.
-print('Difference: {0:f}'.format(loss_naive - loss_vectorized))
+# print('Difference: {0:f}'.format(loss_naive - loss_vectorized))
+
+
+# Stochastic Gradient Descent
+from classifiers import LinearSVM
+svm = LinearSVM()
+start_time = time.time()
+loss_hist = svm.train(train_dataset, train_labels, learning_rate=1e-7,
+        reg=5e4, num_iters=1500, verbose=True)
+end_time = time.time()
+print('Execute time:{0:f}'.format(end_time - start_time))
+
+# A useful debugging strategy is to plot the loss as a function of
+# iteration number:
+# plt.plot(loss_hist)
+# plt.xlabel('Iteration number')
+# plt.ylabel('Loss value')
+# plt.show()
+
+# Write the LinearSVM.predict function and evalute the performance on both
+# the training and validation set
+y_train_pred = svm.predict(train_dataset)
+print('Training accuracy: {0:f}'.format(np.mean(train_labels == y_train_pred)))
+y_val_pred = svm.predict(valid_dataset)
+print('Validation accurcy: {0:f}'.format(np.mean(valid_labels == y_val_pred)))
