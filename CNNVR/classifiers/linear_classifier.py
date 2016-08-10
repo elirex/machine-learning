@@ -1,5 +1,6 @@
 import numpy as np
 from classifiers.linear_svm import *
+from classifiers.softmax import *
 
 class LinearClassifier:
 
@@ -101,3 +102,9 @@ class LinearSVM(LinearClassifier):
     def loss(self, X_batch, y_batch, reg):
         return svm_loss_vectorized(self.W, X_batch, y_batch, reg)
 
+
+class Softmax(LinearClassifier):
+    """ A subclass that uses the Softmax loss function """
+
+    def loss(self, X_batch, y_batch, reg):
+        return softmax_loss_naive(self.W, X_batch, y_batch, reg)
