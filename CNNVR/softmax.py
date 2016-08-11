@@ -66,8 +66,27 @@ from classifiers.softmax import *
 
 # Generate a random softmax weight matrix and use it to compute the loss.
 W = np.random.randn(10, 3073) * 0.0001
-loss, grad = softmax_loss_naive(W, train_dataset, train_labels, 0.0)
+start_time = time.time()
+loss_naive, grad_naive = softmax_loss_naive(W, train_dataset, train_labels, 0.00001)
+end_time = time.time()
+print('Naive loss: {0:e}, computed in {1:f}s'.format(loss_naive, end_time - start_time))
 
 # As a rough sanity check, our loss should be something close to -log(0.1).
-print('Loss: {0:f}'.format(loss))
 print('Sanity check: {0:f}'.format(-np.log(0.1)))
+
+# Use numeric grdient checking as a debugging tool.
+from gradient_check import grad_check_sparse
+f = lambda w: softmax_loss_naive(W, train_dataset, train_labels, 0.0)[0]
+grad_numerical = grad_check_sparse(f, W, grad_naive, 10)
+
+
+start_time = time.time()
+loss_vectorized, grad_vectorized = softmax_loss_vectorized(W, train_dataset,
+        train_labels, 0.00001)
+end_time = time.time()
+print('Vectorized loss: {0:e}, computed in {1:f}s'.format(loss_vectorized, end_time - start_time))
+
+# Use the Frobenius norm to compare the two versions of the gradient.
+grad_difference = np.linalg.norm(grad_naive - grad_vectorized, ord='fro')
+print('Loss difference: {0:f}'.format(np.abs(loss_naive - loss_vectorized)))
+print('Gradient difference: {0:f}'.format(grad_difference))

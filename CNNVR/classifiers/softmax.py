@@ -56,3 +56,48 @@ def softmax_loss_naive(W, X, y, reg):
     dW += reg * W
     
     return loss, dW
+
+
+
+def softmax_loss_vectorized(W, X, y, reg):
+    """
+    Softmax loss function, vectorized verstion.
+
+    Inputs and outputs are the same as softmax_loss_naive.
+    """
+
+    # Initialize the loss and gradient to zero.
+    loss = 0.0
+    dW = np.zeros_like(W)
+    
+    # Compute the softmax loss and its gradient using no explicit loops.
+
+    # Get shapes
+    num_classes = W.shape[0]
+    num_train = X.shape[1]
+
+    # Compute scores
+    f = np.dot(W, X)
+
+    # Normalization trick to avoid numerical instability.
+    f -= np.max(f)
+
+    # Loss: L_i = - f(x_1)_{y_i} + log \ sum_j e^{f(x_i)_j}
+    # Compute vector of stacked correct f-scores: 
+    # [f(x_1)_{y_1}, ..., f(x_N)_{y_N}]
+    # (Where N is num_train)
+    f_correct = f[y, range(num_train)]
+    loss = -np.mean(np.log(np.exp(f_correct)/np.sum(np.exp(f))))
+
+    # Gradient: dw_j = 1/num_train * \sum_i[x_i * (p(y_i = j)-Ind{y_i = j})]
+    p = np.exp(f)/np.sum(np.exp(f), axis =0)
+    ind = np.zeros(p.shape)
+    ind[y, range(num_train)] = 1
+    dW = np.dot((p-ind), X.T)
+    dW /= num_train
+
+    # Regularization
+    loss += 0.5 * reg * np.sum(W * W)
+    dW += reg * W
+    
+    return loss, dW
