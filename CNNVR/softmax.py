@@ -44,9 +44,9 @@ def get_CIFAR10_data(num_training=49000, num_validation=1000,
     test_dataset -= mean_image
 
     # Add bias dimension and transform into columns
-    train_dataset = np.hstack([train_dataset, np.ones((train_dataset.shape[0], 1))]).T
-    valid_dataset = np.hstack([valid_dataset, np.ones((valid_dataset.shape[0], 1))]).T
-    test_dataset = np.hstack([test_dataset, np.ones((test_dataset.shape[0], 1))]).T
+    train_dataset = np.hstack([train_dataset, np.ones((train_dataset.shape[0], 1))])
+    valid_dataset = np.hstack([valid_dataset, np.ones((valid_dataset.shape[0], 1))])
+    test_dataset = np.hstack([test_dataset, np.ones((test_dataset.shape[0], 1))])
 
     return train_dataset, train_labels, valid_dataset, valid_labels, test_dataset, test_labels
 
@@ -65,7 +65,7 @@ print('Test labels shape:', test_labels.shape)
 from classifiers.softmax import *
 
 # Generate a random softmax weight matrix and use it to compute the loss.
-W = np.random.randn(10, 3073) * 0.0001
+W = np.random.randn(3073, 10) * 0.0001
 start_time = time.time()
 loss_naive, grad_naive = softmax_loss_naive(W, train_dataset, train_labels, 0.00001)
 end_time = time.time()
@@ -81,8 +81,7 @@ grad_numerical = grad_check_sparse(f, W, grad_naive, 10)
 
 
 start_time = time.time()
-loss_vectorized, grad_vectorized = softmax_loss_vectorized(W, train_dataset,
-        train_labels, 0.00001)
+loss_vectorized, grad_vectorized = softmax_loss_vectorized(W, train_dataset, train_labels, 0.00001)
 end_time = time.time()
 print('Vectorized loss: {0:e}, computed in {1:f}s'.format(loss_vectorized, end_time - start_time))
 
@@ -90,3 +89,5 @@ print('Vectorized loss: {0:e}, computed in {1:f}s'.format(loss_vectorized, end_t
 grad_difference = np.linalg.norm(grad_naive - grad_vectorized, ord='fro')
 print('Loss difference: {0:f}'.format(np.abs(loss_naive - loss_vectorized)))
 print('Gradient difference: {0:f}'.format(grad_difference))
+
+
