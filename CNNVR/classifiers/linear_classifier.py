@@ -55,6 +55,39 @@ class LinearClassifier:
                 print('Iteration {0:d} / {1:d} loss {2:f}'.format(it, num_iters, loss))
         return loss_history
 
+
+    def train2(self, X, y, learning_rate=1e-3, reg=1e-5, num_iters=100,
+            batch_size=200, verbose=False):
+        num_train, dim = X.shape # Example X.shape(3073, 49000)
+        num_classes = np.max(y) + 1 # Assume y takes values 0,,,K-1 where K is number of classes
+        if self.W is None:
+            # lazily initialize W
+            self.W = np.random.randn(dim, num_classes) * 0.001
+
+        # Run stochatic gradient descent to optimize W
+        loss_history = []
+        for it in range(num_iters):
+            X_batch = None
+            y_batch = None
+
+            # Sample batch_size element from the training data and their
+            # corresponding labels to use in this round of gradient descent.
+            # indices = np.array([np.random.choice(num_train) for i in range(batch_size)])
+            indices = np.random.choice(num_train, batch_size)
+            X_batch = X[indices]
+            y_batch = y[indices]
+
+            # Evaluate loss and gradient
+            loss, grad = self.loss(X_batch, y_batch, reg)
+            loss_history.append(loss)
+
+            # TODO: Update the weights using the gradient and the learning rate.
+            self.W -= learning_rate * grad
+
+            if verbose and it % 100 == 0:
+                print('Iteration {0:d} / {1:d} loss {2:f}'.format(it, num_iters, loss))
+        return loss_history
+
     def predict(self, X):
         """
         Use the trained weights of this linear classifier to predict labels 
@@ -75,6 +108,15 @@ class LinearClassifier:
 
         score = self.W.dot(X)
         y_pred = np.argmax(score, axis=0)
+
+        return y_pred
+
+
+    def predict2(self, X):
+        y_pred = np.zeros(X.shape[1])
+        
+        # TODO: Implement this method. Store the predicted labels in y_pred.
+        y_pred = np.argmax(X.dot(self.W), axis=1)
 
         return y_pred
 
