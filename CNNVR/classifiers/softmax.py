@@ -45,29 +45,6 @@ def softmax_loss_naive(W, X, y, reg):
             # p = np.exp(f_scores[j]) / (np.sum(np.exp(f_scores)))
             # dW[:, j] += X[i, :] * (-1 * (j == y[i]))
             dW[:, j] += X[i, :] * (-1 * (j == y[i])) + np.exp(f_scores[j])/(np.sum(np.exp(f_scores)))
-    
-
-    # for i in range(num_train):
-    #     # Compute vector of scores
-    #     f_i = W.dot(X[:, i]) # In R^{num_classes}
-
-    #     # Normalization trick to avoid numerical instability
-    #     log_c = np.max(f_i)
-    #     f_i -= log_c
-
-    #     # Compute loss (and add to it, divided later)
-    #     # L_i = - f(x_i)_{y_i} + log \ sum_j e^{f(x_i)_j}
-    #     sum_i = 0.0
-    #     for f_i_j in f_i:
-    #         sum_i += np.exp(f_i_j)
-    #     loss += -f_i[y[i]] + np.log(sum_i)
-
-    #     # Compute gradient
-    #     # dW_j = 1 / num_train * \ sum_i[x_i * (p(y_i = j) - Ind{y_i = j})]
-    #     # Here we are computing the contribution to the inner sum for given i.
-    #     for j in range(num_classes):
-    #         p = np.exp(f_i[j]) / sum_i
-    #         dW[j, :] += (p - (j == y[i])) * X[:, i]
 
     # # Compute average
     loss /= num_train
@@ -129,20 +106,6 @@ def softmax_loss_vectorized(W, X, y, reg):
 
     # Then, we will multiply it elementwise by X_i(this is kind of weird) to get a 3D array of NxDxC
     dW = (X.T).dot(sum)
-
-    # Loss: L_i = - f(x_1)_{y_i} + log \ sum_j e^{f(x_i)_j}
-    # Compute vector of stacked correct f-scores: 
-    # [f(x_1)_{y_1}, ..., f(x_N)_{y_N}]
-    # (Where N is num_train)
-    # f_correct = f[y, range(num_train)]
-    # loss = -np.mean(np.log(np.exp(f_correct)/np.sum(np.exp(f))))
-
-    # Gradient: dw_j = 1/num_train * \sum_i[x_i * (p(y_i = j)-Ind{y_i = j})]
-    # p = np.exp(f)/np.sum(np.exp(f), axis =0)
-    # ind = np.zeros(p.shape)
-    # ind[y, range(num_train)] = 1
-    # dW = np.dot((p-ind), X.T)
-    # dW /= num_train
 
     # Regularization
     loss /= num_train

@@ -76,9 +76,13 @@ class TwoLayerNet(object):
         # input. Store the result in the scores variable, with should be  #
         # an array of shape (N, C).                                       #
         ###################################################################
-        # Fully connected Layer (ReLU)
+        # Fully connected Layer
         hidden = np.dot(X, W1) + b1
+
+        # ReLU
         h_scores = np.maximum(0, hidden)
+
+        # Fully connected Layer
         scores = np.dot(h_scores, W2) + b2
         ###################################################################
         #                        END OF YOUR CODE                         #
@@ -100,15 +104,28 @@ class TwoLayerNet(object):
        
         # Pre-compute the max of the exponentiation and subtract the value
         # by it.
-        scores_max = np.max(scores).reshape(-1, 1)
-        scores -= scores_max
-        scores_exp = np.exp(scores)
-        scores_exp_sum = np.sum(scores_exp, axis=1)
-        correct_scores = scores[np.arange(N), y] 
-        loss = np.sum(-correct_scores + np.log(scores_exp_sum)) / N
+        # scores_max = np.max(scores).reshape(-1, 1)
+        # scores -= scores_max
+        # scores_exp = np.exp(scores)
+        # scores_exp_sum = np.sum(scores_exp, axis=1)
+        # correct_scores = scores[np.arange(N), y] 
 
+        # The data loss
+        # loss = np.sum(-correct_scores + np.log(scores_exp_sum)) / N
         # The regularization:
-        loss += 0.5 * reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
+        # loss += 0.5 * reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
+
+        # Get unnormalized probabilities
+        exp_scores = np.exp(scores)
+        # Normalize them for each example
+        probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
+        corect_logprobs = -np.log(probs[range(N), y])
+
+        # Compute the loss: avarage cross-entropy loss and regularization
+        data_loss = np.sum(corect_logprobs) / N
+        reg_loss = 0.5 * reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
+        loss = data_loss + reg_loss
+
         ###################################################################
         #                        END OF YOUR CODE                         #
         ###################################################################
@@ -121,7 +138,20 @@ class TwoLayerNet(object):
         # dictionary. For example, grads['W1'] should store the gradient  #
         # on W1, and be a matrix of same size.                            #
         ###################################################################
+    
+        dscores = probs
+        dscores[range(N), y] -= 1
+        dscores /= N
 
+        grads['W2'] = np.dot(h_scores.T, dscores)
+        grads['b2'] = np.sum(dscores, axis=0, keepdims=True)
+
+        dh_scores = np.dot(dscores, W2.T)
+        # Backprop the ReLU non-linearity
+        dh_scores[h_scores <= 0] = 0
+
+        grads['W1'] = np.dot(X.T, dh_scores)
+        grads['b1'] = np.sum(dh_scores, axis=0, keepdims=True)
         ###################################################################
         #                        END OF YOUR CODE                         #
         ###################################################################
