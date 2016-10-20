@@ -104,9 +104,9 @@ class TwoLayerNet(object):
        
         # Pre-compute the max of the exponentiation and subtract the value
         # by it.
-        # scores_max = np.max(scores).reshape(-1, 1)
+        scores_max = np.max(scores).reshape(-1, 1)
         # scores -= scores_max
-        # scores_exp = np.exp(scores)
+        exp_scores = np.exp(scores)
         # scores_exp_sum = np.sum(scores_exp, axis=1)
         # correct_scores = scores[np.arange(N), y] 
 
@@ -115,13 +115,14 @@ class TwoLayerNet(object):
         # The regularization:
         # loss += 0.5 * reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
 
-        # Get unnormalized probabilities
-        exp_scores = np.exp(scores)
-        # Normalize them for each example
+        # correct_scores = scores[np.arange(N), y]
+        # data_loss = np.sum(-correct_scores + np.log(np.sum(exp_scores, axis=1))) / N
+        
+        # Get unnormalized probabilities and Normalize them for each example
         probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
         corect_logprobs = -np.log(probs[range(N), y])
 
-        # Compute the loss: avarage cross-entropy loss and regularization
+        # compute the loss: avarage cross-entropy loss and regularization
         data_loss = np.sum(corect_logprobs) / N
         reg_loss = 0.5 * reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
         loss = data_loss + reg_loss
@@ -142,18 +143,134 @@ class TwoLayerNet(object):
         dscores = probs
         dscores[range(N), y] -= 1
         dscores /= N
+        # dscores = np.zeros(scores.shape)
+        # dscores[range(N), y] = -1
+        # dscores = (dscores + (exp_scores/np.sum(exp_scores, axis=1, keepdims=True).reshape(-1, 1))) / N
 
         grads['W2'] = np.dot(h_scores.T, dscores)
+        grads['W2'] += reg * (W2)
         grads['b2'] = np.sum(dscores, axis=0, keepdims=True)
 
         dh_scores = np.dot(dscores, W2.T)
         # Backprop the ReLU non-linearity
-        dh_scores[h_scores <= 0] = 0
+        dh_scores[h_scores == 0] = 0
 
         grads['W1'] = np.dot(X.T, dh_scores)
+        grads['W1'] += reg * (W1)
         grads['b1'] = np.sum(dh_scores, axis=0, keepdims=True)
         ###################################################################
         #                        END OF YOUR CODE                         #
         ###################################################################
 
-        return loass, grads
+        return loss, grads
+
+
+    def train(self, X, y, X_val, y_val, learning_rate=1e-3,
+            learning_rate_decay=0.95, reg=1e-5, num_iters=100, batch_size=200,
+            verbose=False):
+        """
+        Train this neural network using Stochastic Gradient Descent.(SGD)
+
+        Inputs:
+        - X: A numpy array of shape (N, D) giving training data.
+        - y: A numpy array of shape (N,) giving training labels; 
+            y[i] = c means that X[i] has label c, where 0 <= c < C.
+        - X_val: A numpy array of shape (N_val, D) giving validation data.
+        - y_val: A numpy array of shape (N_val,) giving validation labels.
+        - learning_rate: Scalar giving learning rate for optimization.
+        - learning_rate_decay: Scalar giving factor used to decay the learning
+            rate after each epoch.
+        - reg: Scalar giving regularization strength.
+        - num_iters: Number of steps to take when optimizing.
+        - batch_size: Number of training examples to use per step.
+        - verbose: boolean; if true print progress during optimization.
+        """
+        
+        N = X.shape[0]
+        iterations_per_epoch = max(N / batch_size, 1)
+
+        # Use SGD to optimize the parameters in self.model
+        loss_history = []
+        train_acc_history = []
+        val_acc_history = []
+
+        for it in range(N):
+            X_batch = None
+            y_batch = None
+
+            ##################################################################
+            # TODO: Create a random minibatch of training data and labels,   #
+            # storing them in X_batch and y_batch respectively.              #
+            ##################################################################
+            indices = np.random.choice(N, batch_size)
+            X_batch = X[indices]
+            y_batch = y[indices]
+            ##################################################################
+            #                       END OF YOUR CODE                         #
+            ##################################################################
+
+            # Compute loss and gradients using the current minibatch
+            loss, grads = self.loss(X_batch, y=y_batch, reg=reg)
+            loss_history.append(loss)
+
+            ##################################################################
+            # TODO: Use the gradients in the grads dictionary to update the  #
+            # parameters of the network (stored in the dictionary            #
+            # self.params) using Stochastic Gradient Descent. You'll need to #
+            # use the gradients stored in the grads dictionary defined above.#
+            ##################################################################
+            self.params['W1'] -= grads['W1'] * learning_rate
+            self.params['b1'] -= grads['b1'].shape[1] * learning_rate
+            self.params['W2'] -= grads['W2'] * learning_rate
+            self.params['b2'] -= grads['b2'].shape[1] * learning_rate
+            ##################################################################
+            #                       END OF YOUR CODE                         #
+            ##################################################################
+
+            if verbose and it % 100 == 0:
+                print('iteration {0:d} / {1:d}: loss {2:f}'.format(it, N, loss))
+
+            # Every epoch, check train and val accuracy and decay learning rate.
+            if it % iterations_per_epoch == 0:
+                # Check accuracy
+                train_acc = (self.predict(X_batch) == y_batch).mean()
+                val_acc = (self.predict(X_val) == y_val).mean()
+                train_acc_history.append(train_acc)
+                val_acc_history.append(val_acc)
+
+                # Deacy learning rate
+                learning_rate *= learning_rate_decay
+
+        return {'loss_history': loss_history,
+                'train_acc_history': train_acc_history,
+                'val_acc_history': val_acc_history}
+
+
+    def predict(self, X):
+        """
+        Use the trained weights of this two-layer network to predict lables for
+        data points. For each data point we predict scores for each of the C
+        classes, and assign each data point to the class with the highest score.
+
+        Inputs:
+        - X: A numpy array of shape (N, D) giving N D-dimensional data points to
+            classify.
+
+        Returns:
+        - y_pred: A numpy array of shape (N,) giving predicted labels for each
+            of the elements of X. For all i, y_pred[i] = c means that X[i] is
+            predicted to have class c, where 0 <= c < C.
+        """
+        
+        y_pred = None
+
+        ##################################################################
+        # TODO: Implement this function; it should be VERY simple!       #
+        ##################################################################
+        scores = np.dot(np.maximum(0, np.dot(X, self.params['W1']) + self.params['b1']), self.params['W2']) + self.params['b2']
+        y_pred = np.argmax(scores, axis=1)
+        ##################################################################
+        #                       END OF YOUR CODE                         #
+        ##################################################################
+
+        return y_pred
