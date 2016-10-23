@@ -166,8 +166,8 @@ class TwoLayerNet(object):
 
 
     def train(self, X, y, X_val, y_val, learning_rate=1e-3,
-            learning_rate_decay=0.95, reg=1e-5, num_iters=100, batch_size=200,
-            verbose=False):
+            learning_rate_decay=0.95, reg=1e-5, num_iters=100, 
+            batch_size=200, verbose=False):
         """
         Train this neural network using Stochastic Gradient Descent.(SGD)
 
@@ -194,7 +194,7 @@ class TwoLayerNet(object):
         train_acc_history = []
         val_acc_history = []
 
-        for it in range(N):
+        for it in range(num_iters):
             X_batch = None
             y_batch = None
 
@@ -228,7 +228,7 @@ class TwoLayerNet(object):
             ##################################################################
 
             if verbose and it % 100 == 0:
-                print('iteration {0:d} / {1:d}: loss {2:f}'.format(it, N, loss))
+                print('iteration {0:d} / {1:d}: loss {2:f}'.format(it, num_iters, loss))
 
             # Every epoch, check train and val accuracy and decay learning rate.
             if it % iterations_per_epoch == 0:
