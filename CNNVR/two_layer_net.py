@@ -5,8 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
-from classifiers.neural_net import TwoLayerNet
-
+from classifiers.neural_net import TwoLayerNet 
 plt.rcParams['figure.figsize'] = (10.0, 8.0) # Set default size of plots
 plt.rcParams['image.interpolation'] = 'nearest'
 plt.rcParams['image.cmap'] = 'gray'
@@ -170,4 +169,72 @@ plt.title('Classification accuracy history')
 plt.xlabel('Epoch')
 plt.ylabel('Classification accuracy')
 plt.show()
+
+
+from vis_utils import visualize_grid
+
+# Visualize the weights of the network
+
+def show_net_weights(net):
+    W1 = net.params['W1']
+    W1 = W1.reshape(32, 32, 3, -1).transpose(3, 0, 1, 2)
+    plt.imshow(visualize_grid(W1, padding=3).astype('uint8'))
+    plt.gca().axis('off')
+    plt.show()
+
+show_net_weights(net)
+
+
+# Tune your hyperparameters
+
+best_net = None # Store the best model into this
+best_acc = 0
+
+input_size = 32 * 32 * 3
+hidden_size = 50
+num_classes = 10
+
+############################################################################
+# TODO: Tune hyperparameters using the validation set. Store your best     #
+# trained model in best_net.                                               #
+# To help debug your network, it may help to use visualizations similar to #
+# the ones we used above; these visualizations will have significant       #
+# qualitative differences from the ones we saw above for the poorly tuned  #
+# network.                                                                 #
+# Tweaking hyperparameters by hand can be fun, but your might find it      #
+# useful to write code to sweep through possible combinations of           #
+# hyperparameters automatically like we did on the previous exercises.     #
+############################################################################
+learning_rates = np.logspace(-3.5, -2.5, 10)
+regularization_rates = np.logspace(-2, 0, 5)
+for learning_rate in learning_rates:
+    for regularization_rate in regularization_rates:
+        net = TwoLayerNet(input_size, hidden_size, num_classes)
+        print('Regularization : {0:s} Learning : {1:s}'.format(str(regularization_rate), str(learning_rate)))
+        # Train the network
+        stats = net.train(X_train, y_train, X_val, y_val, num_iters=2000,
+                batch_size=200, learning_rate=learning_rate,
+                learning_rate_decay=0.95, reg=regularization_rate,
+                verbose=False)
+
+        # Predict on the validation set
+        val_acc = (net.predict(X_val) == y_val).mean()
+        print("Acc : ", str(val_acc))
+        if val_acc > best_acc:
+            best_net = net
+            best_acc = val_acc
+
+
+# visualize the weights of the best network
+show_net_weights(best_net)
+
+
+# Run on the test set
+test_acc = (best_net.predict(X_test) == y_test).mean()
+print('Test accuracy:', test_acc)
+
+
+############################################################################
+#                               ND OF YOUR CODE                            #
+############################################################################
 
