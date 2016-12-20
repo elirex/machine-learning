@@ -186,3 +186,241 @@ def batchnorm_forward(x, gamma, bate, bn_param):
     bn_param['running_mean'] = running_mean
     bn_param['running_var'] = running_var
     return out, cache
+
+def batchnorm_backward(dout, cache):
+    """
+        Backward pass for batch normalization.
+
+        For this implementation, you should write out a computation graph for
+        batch normalization on paper and propagate gradients backward through
+        intermediate nodes.
+
+        Inputs:
+        - dout: Upstream derivatives, of shape (N, D)
+        - cache: Variable of intermediates from batchnorm_forward.
+
+        Returns a tuple of:
+        - dx: Gradient with respect to inputs x, of shape (N, D)
+        - dgamma: Gradient with respect to scale parameter gamma, of shape (D,)
+        - dbeta: Gradient with respect to shift parameter beta, of shape (D,)
+    """
+    
+    dx, dgamma, dbeta = None, None, None
+    # Unwrap all this stuff
+    u_b = cache['mean']
+    sigma_squared_b = cache['variance']
+    x_hat = cache['x_hat']
+    gamma = cache['gamma']
+    beta = cache['beta']
+    eps = cache['eps']
+    x = cache['x']
+    N = x.shape[0]
+
+    # Compute derivatives with respect to x (notation is x_1 if it's the 
+    # first backwards)
+    dx_1 = gamma * dout
+
+    # When we multiply a. (x-u_b) by b. (sigma_squared_b + eps)^-0.5
+    dx_2_b = np.sum((x-u_b) * dx_1, axis=0)
+    dx_2_a = ((sigma_squared_b + eps) ** 0.5) * dx_1
+
+    # When we have (sigma_squared_b + eps) ^ -0.5
+    dx_3_b = (-0.5) * ((sigma_squared_b) ** -1.5) * dx_2_b
+
+    # When we have addition of epsilon
+    dx_4_b = dx_3_b * 1
+
+    # When we have the summation of calculating sigma
+    dx_5_b = np.ones_like(x) / N * dx_4_b
+
+    # When we have to the power of 2 of calculating sigma
+    dx_6_b = 2 * (x-u_b) * dx_5_b
+
+    # Whe we have to congregate both sources of dout1 and dout2
+    # In addition, we're also adding, so just multiply by 1 to show that
+    dx_7_a = dx_6_b * 1 + dx_2_a * 1
+    dx_7_b = dx_6_b * 1 + dx_2_a * 1
+
+    # When multiplied by -1 (so we can magate the adding to a subtract),
+    # value is -1 * prev_val
+    dx_8_b = -1 * np.sum(dx_7_b, axis=0)
+
+    # Whe we have summation of calculating mean
+    dx_9_b = np.ones_like(x) / N * dx_8_b
+
+    # Whe we have to congregate both sources of dout1 and dout2
+    dx_10 = dx_9_b + dx_7_a
+
+    dgamma = np.sum(x_hat * dout, axis=0)
+    dbeta = np.sum(dout, axis=0)
+    dx = dx_10
+
+    return dx, dgamma, dbeta
+
+
+def dropout_forward(x, dropout_param):
+    """
+    Performs the forward pass for (inverted) dropout.
+
+    Inputs:
+    - x: Input data, of any shape
+    - dropout_param: A dictionary with the following keys:
+    - p: Dropout parameter, We drop each neuron output with probability p.
+    - mode: 'test' or 'train'. If the mode is train, then perform dropout;
+        if the mode is test, then just return the input.
+    - seed: Seed for the random number generator. Passing seed makes this
+        function deterministic, which is needed for gradient checking but
+        not in real networks.
+
+    Outputs:
+    - out: Array of the same shape as x.
+    - cache: A tuple (dropout_param, mask). In training mode, mask is the 
+        dropout mask that was used to multiply the input; in test mode, mask 
+        is None.
+    """
+    
+    p, mode = dropout_param['p'], dropout_param['mode']
+    if 'seed' in dropout_param:
+        np.random.seed(dropout_param['seed'])
+
+    mask = None
+    out = None
+    if mode == 'train':
+        mask = (np.random.rand(*x.shape) > p) / p
+        out = x * mask
+    elif mode == 'test':
+        out = x
+
+    cache = (dropout_param, mask)
+    out = out.astype(x.dtype, copy=False)
+
+    return out, cache
+
+
+def dropout_backward(dout, cache):
+    """
+    Perform the backward pass for (inverted) droput.
+
+    Inputs:
+    - dout: Upstream derivatives, of any shape.
+    - cache: (dropout_param, mask) from dropout_forward.
+    """
+
+    dropout_param, mask = cache
+    mode = dropout_param['mode']
+
+    dx = None
+    if mode == 'train':
+        dx = dout * mask
+    elif mode == 'test':
+        dx = dout
+
+    return dx
+
+
+def conv_forward_naive(x, w, b, conv_param):
+    """
+        A naive implementation of the forward pass for a convolutional layer.
+
+        The input consists of N data points, each with C channels, height H and
+        width W. We convolve each input with F different filters, where each
+        filter spans all C channels and height HH and width WW
+
+        Input:
+        - x: Input data of shape (N, C, H, W)
+        - w: Filter weights of shape (F, C, HH, WW)
+        - b: Biases, of shape (F,)
+        - conv_param: A dictionary with the following keys:
+            - 'stride': The number of pixels between adjacent receptive fields
+                in the horizontal and vertical directions
+            - 'pad': The number of pixels that will be used to zero-pad the input.
+
+        Returns a tuple of:
+        - out: Output data, of shape (N, F, H', W') where H' and W' are given by
+            H' = 1 + (H + 2 * pad - HH) / stride
+            W' = 1 + (W + 2 * pad - WW) / stride
+        - cache: (x, w, b, conv_param)
+    """
+
+    stride = conv_param['stride']
+    pad = conv_param['pad']
+    N, C, H, W = x.shape
+    F, _, HH, WW = w.shape
+    out = None
+
+    # Padding
+    # x.shape = (1, 1, 3, 3)
+    # x = [[[[1, 1, 1],
+    #        [1, 1, 1],
+    #        [1, 1, 1],]]]
+    # padding 1
+    # x = [[[[0, 0, 0, 0, 0],
+    #        [0, 1, 1, 1, 0],
+    #        [0, 1, 1, 1, 0],
+    #        [0, 1, 1, 1, 0],
+    #        [0, 0, 0, 0, 0]]]]
+    x_pad = np.pad(x, pad_width=[(0,), (0,), (pad,), (pad,)], mode='constant',
+            constant_values=0)
+    H_prime = (H + 2 * pad - HH) / stride + 1
+    W_prime = (W + 2 * pad - WW) / stride + 1
+    out = np.zeros((N, F, H_prime, W_prime))
+    for i in xrange(H_prime):
+        for j in xrange(W_prime):
+            selected_x = x_pad[:, :, i * stride : i * stride + HH, 
+                                j * stride : j * stride + WW]
+            for k in xrange(F):
+                out[:, k, i, j] = np.sum(selected_x * w[k], axis(1, 2, 3)) + b[k]
+    
+    cache = (x, w, b, conv_param)
+    return out, cache
+
+def conv_backward_naive(dout, cache):
+    """
+        A naive implementation of the backward pass for a convolutional layer.
+
+        Inputs:
+        - dout: Upstream derivatives.
+        - cache: A tuple of (x, w, b, conv_param) as in conv_forward_naive
+
+        Returns a tuple of:
+        - dx: Gradient with respect to x
+        - dw: Gradient with respect to w
+        - db: Gradient with respect to b
+    """
+    
+    dx, dw, db = None, None, None
+    # Unwrap cache
+    x, w, b, conv_param = cache
+    N, C, H, W = x.shape
+    F, _, HH, WW = w.shape
+    stride = conv_param['stride']
+    pad = conv_param['pad']
+
+    x_pad = np.pad(x, pad_width=[(0,), (0,), (pad,), (pad,)], mode='constant',
+            constant_values=0)
+
+    # Shape the numpy arrays
+    dx_pad = np.zeros_like(x_pad) # We will trim off the dx's on the paddings later
+    dx = np.zeros_like(x)
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
+
+    # db calculation
+    db = np.sum(dout, axis=(0, 2, 3))
+
+    # Loading up some values before going to calculate dw and dx
+    H_prime = (H + 2 * pad - HH) / stride + 1
+    W_prime = (W + 2 * pad - WW) / stride + 1
+
+    for i in xrange(H_prime):
+        for j in xrange(W_prime):
+            selected_x = x_pad[:, :, i*stride: i*stride+HH,
+                    j * stride: j * stride + WW]
+            selected_shape = selected_x.shape
+            for k in xrange(F):
+                dw[k] += np.sum(selected_x * (dout[:, k, i ,j])[:, None, None, None], axis=0)
+            dx_pad[:, :, i*stride: i*stride+HH, j*stride: j*stride+WW] +=\
+                    np.einsum('ij,jklm->iklm', dout[:, :, i, j], w)
+    dx = dx_pad[:, :, pad:-pad, pad:-pad]
+
+    return dx, dw, db
