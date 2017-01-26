@@ -131,7 +131,7 @@ class KNearestNeighbor(object):
     #########################################################################
     return dists
 
-  def predict_labels(self, dists, k=1):
+  def predict_labels(self, dists, k=1, num_classes=10):
     """
     Given a matrix of distances between test points and training points,
     predict a label for each test point.
@@ -157,7 +157,11 @@ class KNearestNeighbor(object):
       # neighbors. Store these labels in closest_y.                           #
       # Hint: Look up the function numpy.argsort.                             #
       #########################################################################
-      pass
+      # Sort distance along row.
+      # dist_sorted = np.argsort(dists[i], axis=0)
+      # Get the top k lables.
+      # closest_y = self.y_train[dist_sorted[:k]]
+      closest_y = self.y_train[np.argsort(dists[i], axis=0)[:k]]
       #########################################################################
       # TODO:                                                                 #
       # Now that you have found the labels of the k nearest neighbors, you    #
@@ -165,7 +169,10 @@ class KNearestNeighbor(object):
       # Store this label in y_pred[i]. Break ties by choosing the smaller     #
       # label.                                                                #
       #########################################################################
-      pass
+      count = np.zeros(num_classes)
+      for j in closest_y:
+          count[j] += 1
+      y_pred[i] = np.argmax(count)  
       #########################################################################
       #                           END OF YOUR CODE                            # 
       #########################################################################
