@@ -136,7 +136,9 @@ def color_histogram_hsv(im, nbin=10, xmin=0, xmax=255, normalized=True):
     input image.
   """
   ndim = im.ndim
+  # print('ndim: ', ndim)
   bins = np.linspace(xmin, xmax, nbin+1)
+  # print('bins: ', bins)
   hsv = matplotlib.colors.rgb_to_hsv(im/xmax) * xmax
   imhist, bin_edges = np.histogram(hsv[:,:,0], bins=bins, density=normalized)
   imhist = imhist * np.diff(bin_edges)
