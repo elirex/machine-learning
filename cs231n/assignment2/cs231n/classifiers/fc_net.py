@@ -191,6 +191,14 @@ class FullyConnectedNet(object):
         layer = str(i + 1)
         self.params['W'+layer] = weight_scale * np.random.randn(dims[i], dims[i+1])
         self.params['b'+layer] = np.zeros((dims[i+1]))
+
+    if use_batchnorm:
+        for i in xrange(self.num_layers-1):
+            layer = str(i+1)
+            gamma = 'gamma' + layer
+            self.params[gamma] = np.ones(dims[i+1])
+            beta = 'beta' + layer
+            self.params[beta] = np.zeros(dims[i+1])
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -256,6 +264,13 @@ class FullyConnectedNet(object):
         out, cache['affine_'+layer] = affine_forward(out,\
                                                     self.params['W'+layer],\
                                                     self.params['b'+layer])
+
+        if self.use_batchnorm:
+            out, cache['bn_' + layer] = batchnorm_forward(
+                    out, 
+                    self.params['gamma' + layer],
+                    self.params['beta' + layer],
+                    self.bn_params[i])
         
         # Computes Relu layer
         out, cache['relu_'+layer] = relu_forward(out)
@@ -301,6 +316,10 @@ class FullyConnectedNet(object):
                                         
         # Computes gradient of ReLU layer
         dout = relu_backward(dout, cache['relu_'+layer])
+
+        if self.use_batchnorm:
+            dout, grads['gamma'+layer], grads['beta'+layer] = \
+                    batchnorm_backward(dout, cache['bn_' + layer])
         
         # Computes gradient of weights and biases
         dout, grads['W'+layer], grads['b'+layer] = affine_backward(dout,\
