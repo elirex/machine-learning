@@ -195,7 +195,23 @@ class FullyConnectedNet(object):
     # beta2, etc. Scale parameters should be initialized to one and shift      #
     # parameters should be initialized to zero.                                #
     ############################################################################
-    pass
+    if type(hidden_dims) != list:
+        raise ValueError('hidden_dim has to be a list')
+    
+    self.L = len(hidden_dims) + 1
+    self.N = input_dim
+    self.C = num_classes
+    
+    dims = [self.N] + hidden_dims + [self.C]
+    
+    Ws = {}
+    bs = {}
+    for i in range(len(dims) - 1):
+        Ws['W' + str(i+1)] = weight_scale * np.random.rand(dims[i], dims[i+1])
+        bs['b' + str(i+1)] = np.zeros(dims[i+1])
+        
+    self.params.update(Ws)
+    self.params.update(bs)
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -216,7 +232,15 @@ class FullyConnectedNet(object):
     # pass of the second batch normalization layer, etc.
     self.bn_params = []
     if self.use_batchnorm:
-      self.bn_params = [{'mode': 'train'} for i in xrange(self.num_layers - 1)]
+      self.bn_params = {
+          'bn_param' + str(i+1): {'mode': 'train',
+                                  'running_mean': np.zeros(dims[i+1]),
+                                  'running_var': np.zeros(dims[i+i])}
+          for i in range(len(dims) - 2)}
+      gammas = {'gamma' + str(i+1): np.ones(dims[i+1]) for i in range(len(dims) - 2)}
+      betas = {'beta' + str(i+1): np.zeros(dims[i+1]) for i in range(len(dims) - 2)}
+      self.params.update(betas)
+      self.params.update(gammas)
     
     # Cast all parameters to the correct datatype
     for k, v in self.params.iteritems():
@@ -237,7 +261,7 @@ class FullyConnectedNet(object):
     if self.dropout_param is not None:
       self.dropout_param['mode'] = mode   
     if self.use_batchnorm:
-      for bn_param in self.bn_params:
+      for key, bn_param in self.bn_params.iteritems():
         bn_param[mode] = mode
 
     scores = None
@@ -253,7 +277,26 @@ class FullyConnectedNet(object):
     # self.bn_params[1] to the forward pass for the second batch normalization #
     # layer, etc.                                                              #
     ############################################################################
-    pass
+    hiddens = {}
+    hiddens['hidden0'] = X.reshape(X.shape[0], np.prod(X.shape[1:]))
+    
+    # Computing of the forward.
+    for i in range(self.L):
+        idx = i + 1
+        w = self.params['W' + str(idx)]
+        b = self.params['b' + str(idx)]
+        hidden = hiddens['hidden' + str(idx - 1)]
+        
+        if idx == self.L:
+            hidden, cache_hidden = affine_forward(hidden, w, b)
+            hiddens['hidden' + str(idx)] = hidden
+            hiddens['cache_hidden' + str(idx)] = cache_hidden
+        else:
+            hidden, cache_hidden = affine_relu_forward(hidden, w, b)
+            hiddens['hidden' + str(idx)] = hidden
+            hiddens['cache_hidden' + str(idx)] = cache_hidden
+     
+    scores = hiddens['hidden' + str(self.L)]
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -276,9 +319,42 @@ class FullyConnectedNet(object):
     # automated tests, make sure that your L2 regularization includes a factor #
     # of 0.5 to simplify the expression for the gradient.                      #
     ############################################################################
-    pass
+    
+    # Computing of the loss
+    data_loss, dscores = softmax_loss(scores, y)
+    reg_loss = 0
+    for w in [self.params[f] for f in self.params.keys() if f[0] == 'W']:
+        reg_loss += 0.5 * self.reg * np.sum(w*w)
+     
+    loss = data_loss + reg_loss
+    
+    
+    # Computing of the backward
+    hiddens['dhidden' + str(self.L)] = dscores
+    for i in range(self.L)[::-1]:
+        idx = i + 1
+        dhidden = hiddens['dhidden' + str(idx)]
+        cache_hidden = hiddens['cache_hidden' + str(idx)]
+        if idx == self.L:
+            dhidden, dW, db = affine_backward(dhidden, cache_hidden)
+            hiddens['dhidden' + str(idx - 1)] = dhidden
+            hiddens['dW' + str(idx)] = dW
+            hiddens['db' + str(idx)] = db
+        else:
+            dhidden, dW, db = affine_relu_backward(dhidden, cache_hidden)
+            hiddens['dhidden' + str(idx - 1)] = dhidden
+            hiddens['dW' + str(idx)] = dW
+            hiddens['db' + str(idx)] = db
+    
+    list_dW = {key[1:]: val + self.reg * self.params[key[1:]] for key, val in hiddens.iteritems() if key[:2] == 'dW'}
+    
+    list_db = {key[1:]: val for key, val in hiddens.iteritems() if key[:2] == 'db'}
+    
+    grads.update(list_dW)
+    grads.update(list_db)
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
 
     return loss, grads
+                      
